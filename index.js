@@ -14,14 +14,43 @@ const TAGS = [
   'B5002','C5001','C5002','C5003','C5004'
 ];
 
-app.get('/', (req, res) => res.send('OK'));
+app.get('/', function(req, res) {
+  res.status(200).send('OK');
+});
 
-app.post('/webhook', async (req, res) => {
-  res.sendStatus(200);
+app.post('/webhook', function(req, res) {
+  res.status(200).send('OK');
   const events = req.body.events || [];
-  for (const event of events) {
+  events.forEach(function(event) {
     if (event.type === 'message' && event.message.type === 'text') {
       const userId = event.source.userId;
       const text = event.message.text.trim().toUpperCase();
       if (TAGS.includes(text)) {
-        await addLabel(userId,
+        addLabel(userId, text);
+      }
+    }
+  });
+});
+
+function addLabel(userId, label) {
+  const https = require('https');
+  const data = JSON.stringify({ labels: [label] });
+  const options = {
+    hostname: 'api.line.me',
+    path: '/v2/bot/chat/' + userId + '/labels',
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + CHANNEL_ACCESS_TOKEN,
+      'Content-Length': Buffer.byteLength(data)
+    }
+  };
+  const req = https.request(options);
+  req.write(data);
+  req.end();
+}
+
+const PORT = process.env.PORT || 10000;
+app.listen(PORT, '0.0.0.0', function() {
+  console.log('Server running on port ' + PORT);
+});

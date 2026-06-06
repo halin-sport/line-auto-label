@@ -2,7 +2,7 @@ const express = require('express');
 const app = express();
 app.use(express.json());
 
-const CHANNEL_ACCESS_TOKEN = 'TOKEN';
+const CHANNEL_ACCESS_TOKEN = process.env.TOKEN;
 
 const TAGS = [
   'A3001','A3002','A3003','A3004','A3005','A3006','A3007','A3009','A3010',

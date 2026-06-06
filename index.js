@@ -2,7 +2,7 @@ const express = require('express');
 const app = express();
 app.use(express.json());
 
-const CHANNEL_ACCESS_TOKEN = 'I5d81vHf+7HxMOyne6VRylP/7LoXTyrkmGkGRKDX1FDtZ1uD9B2lfDHFgfXIRnlsAaJt5i0YjXljlF+DfQJDAy Kg57IBGEbsbKTNe2mcF0RyASobeoHN3tKvgBWfUaKNLxcz3hcyOtZijpKLmrt5NwdB04t89/1O/w1cDnyilFU=';
+const CHANNEL_ACCESS_TOKEN = 'TOKEN';
 
 const TAGS = [
   'A3001','A3002','A3003','A3004','A3005','A3006','A3007','A3009','A3010',

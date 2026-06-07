@@ -19,38 +19,13 @@ app.get('/', function(req, res) {
 });
 
 app.post('/webhook', function(req, res) {
-  console.log('收到訊息！', JSON.stringify(req.body));  
+  console.log('收到訊息！', JSON.stringify(req.body));
   res.status(200).send('OK');
   const events = req.body.events || [];
   events.forEach(function(event) {
     if (event.type === 'message' && event.message.type === 'text') {
       const userId = event.source.userId;
       const text = event.message.text.trim().toUpperCase();
+      console.log('文字內容：', text);
       if (TAGS.includes(text)) {
-        addLabel(userId, text);
-      }
-    }
-  });
-});
-
-function addLabel(userId, label) {
-  const https = require('https');
-  const data = JSON.stringify({ labels: [label] });
-  const options = {
-    hostname: 'api.line.me',
-    path: '/v2/bot/chat/' + userId + '/labels',
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer ' + CHANNEL_ACCESS_TOKEN,
-      'Content-Length': Buffer.byteLength(data)
-    }
-  };
-  const req = https.request(options);
-  req.write(data);
-  req.end();
-}
-
-app.listen(process.env.PORT || 10000, '0.0.0.0', function() {
-  console.log('Server started');
-});
+        con

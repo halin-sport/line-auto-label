@@ -1,9 +1,9 @@
 const express = require('express');
 const app = express();
 app.use(express.json());
-
+ 
 const CHANNEL_ACCESS_TOKEN = process.env.TOKEN;
-
+ 
 const TAGS = [
   'A3001','A3002','A3003','A3004','A3005','A3006','A3007','A3009','A3010',
   'A3011','A3012','A3013','A3014','A3015','A3016','A3017','A5001','A5003',
@@ -13,11 +13,11 @@ const TAGS = [
   'A5032','A5033','A5034','A5035','A5036','A5037','A5038','A5039','B5001',
   'B5002','C5001','C5002','C5003','C5004'
 ];
-
+ 
 app.get('/', function(req, res) {
   res.status(200).send('OK');
 });
-
+ 
 app.post('/webhook', function(req, res) {
   console.log('收到訊息！', JSON.stringify(req.body));
   res.status(200).send('OK');
@@ -28,4 +28,42 @@ app.post('/webhook', function(req, res) {
       const text = event.message.text.trim().toUpperCase();
       console.log('文字內容：', text);
       if (TAGS.includes(text)) {
-        con
+        console.log('符合標籤，準備貼標籤：', text);
+        addLabel(userId, text);
+      } else {
+        console.log('不符合任何標籤');
+      }
+    }
+  });
+});
+ 
+function addLabel(userId, label) {
+  console.log('貼標籤：', userId, label);
+  const https = require('https');
+  const data = JSON.stringify({ labels: [label] });
+  const options = {
+    hostname: 'api.line.me',
+    path: '/v2/bot/chat/' + userId + '/labels',
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + CHANNEL_ACCESS_TOKEN,
+      'Content-Length': Buffer.byteLength(data)
+    }
+  };
+  const req = https.request(options, function(res) {
+    console.log('LINE API 回應：', res.statusCode);
+    res.on('data', function(d) {
+      console.log('LINE API 內容：', d.toString());
+    });
+  });
+  req.on('error', function(e) {
+    console.log('錯誤：', e.message);
+  });
+  req.write(data);
+  req.end();
+}
+ 
+app.listen(process.env.PORT || 10000, '0.0.0.0', function() {
+  console.log('Server started');
+});

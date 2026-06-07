@@ -101,7 +101,7 @@ function addUserToAudience(audienceGroupId, userId, tag) {
     const https = require('https');
     const data = JSON.stringify({
       audienceGroupId: audienceGroupId,
-      audiences: [{ type: 'userId', id: userId }]
+      audiences: [{ id: userId }]
     });
     const options = {
       hostname: 'api.line.me',

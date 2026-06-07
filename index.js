@@ -19,6 +19,7 @@ app.get('/', function(req, res) {
 });
 
 app.post('/webhook', function(req, res) {
+  console.log('收到訊息！', JSON.stringify(req.body));  
   res.status(200).send('OK');
   const events = req.body.events || [];
   events.forEach(function(event) {

@@ -2,7 +2,8 @@ const express = require('express');
 const app = express();
 app.use(express.json());
  
-const CHANNEL_ACCESS_TOKEN = process.env.TOKEN;
+const TOKEN = process.env.TOKEN;
+const CHANNEL_ID = process.env.CHANNEL_ID;
  
 const TAGS = [
   'A3001','A3002','A3003','A3004','A3005','A3006','A3007','A3009','A3010',
@@ -14,56 +15,124 @@ const TAGS = [
   'B5002','C5001','C5002','C5003','C5004'
 ];
  
+const audienceMap = {};
+ 
 app.get('/', function(req, res) {
   res.status(200).send('OK');
 });
  
 app.post('/webhook', function(req, res) {
-  console.log('收到訊息！', JSON.stringify(req.body));
   res.status(200).send('OK');
   const events = req.body.events || [];
   events.forEach(function(event) {
     if (event.type === 'message' && event.message.type === 'text') {
       const userId = event.source.userId;
       const text = event.message.text.trim().toUpperCase();
-      console.log('文字內容：', text);
+      console.log('收到訊息：', text, '來自：', userId);
       if (TAGS.includes(text)) {
-        console.log('符合標籤，準備貼標籤：', text);
-        addLabel(userId, text);
-      } else {
-        console.log('不符合任何標籤');
+        console.log('符合代號：', text);
+        addToAudience(userId, text);
       }
     }
   });
 });
  
-function addLabel(userId, label) {
-  console.log('貼標籤：', userId, label);
-  const https = require('https');
-  const data = JSON.stringify({ labels: [label] });
-  const options = {
-    hostname: 'api.line.me',
-    path: '/v2/bot/chat/' + userId + '/labels',
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer ' + CHANNEL_ACCESS_TOKEN,
-      'Content-Length': Buffer.byteLength(data)
+async function addToAudience(userId, tag) {
+  try {
+    if (!audienceMap[tag]) {
+      console.log('建立受眾群組：', tag);
+      const audienceId = await createAudience(tag);
+      if (audienceId) {
+        audienceMap[tag] = audienceId;
+        console.log('受眾群組建立成功：', tag, audienceId);
+      } else {
+        console.log('建立受眾群組失敗：', tag);
+        return;
+      }
     }
-  };
-  const req = https.request(options, function(res) {
-    console.log('LINE API 回應：', res.statusCode);
-    res.on('data', function(d) {
-      console.log('LINE API 內容：', d.toString());
+    await addUserToAudience(audienceMap[tag], userId, tag);
+  } catch(err) {
+    console.log('錯誤：', err.message);
+  }
+}
+ 
+function createAudience(tag) {
+  return new Promise(function(resolve, reject) {
+    const https = require('https');
+    const data = JSON.stringify({
+      description: tag + ' 門市客人',
+      isIfaAudience: false,
+      audiences: []
     });
+    const options = {
+      hostname: 'api.line.me',
+      path: '/v2/bot/audienceGroup/upload',
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + TOKEN,
+        'Content-Length': Buffer.byteLength(data)
+      }
+    };
+    const req = https.request(options, function(res) {
+      let body = '';
+      res.on('data', function(d) { body += d; });
+      res.on('end', function() {
+        console.log('建立受眾回應：', res.statusCode, body);
+        try {
+          const json = JSON.parse(body);
+          resolve(json.audienceGroupId);
+        } catch(e) {
+          resolve(null);
+        }
+      });
+    });
+    req.on('error', function(e) {
+      console.log('建立受眾錯誤：', e.message);
+      resolve(null);
+    });
+    req.write(data);
+    req.end();
   });
-  req.on('error', function(e) {
-    console.log('錯誤：', e.message);
+}
+ 
+function addUserToAudience(audienceGroupId, userId, tag) {
+  return new Promise(function(resolve, reject) {
+    const https = require('https');
+    const data = JSON.stringify({
+      audienceGroupId: audienceGroupId,
+      audiences: [{ type: 'userId', id: userId }]
+    });
+    const options = {
+      hostname: 'api.line.me',
+      path: '/v2/bot/audienceGroup/upload',
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + TOKEN,
+        'Content-Length': Buffer.byteLength(data)
+      }
+    };
+    const req = https.request(options, function(res) {
+      let body = '';
+      res.on('data', function(d) { body += d; });
+      res.on('end', function() {
+        console.log('加入受眾回應：', res.statusCode, body, '用戶：', userId, '群組：', tag);
+        resolve();
+      });
+    });
+    req.on('error', function(e) {
+      console.log('加入受眾錯誤：', e.message);
+      resolve();
+    });
+    req.write(data);
+    req.end();
   });
-  req.write(data);
-  req.end();
 }
  
 app.listen(process.env.PORT || 10000, '0.0.0.0', function() {
   console.log('Server started');
 });
+ 
+
+
